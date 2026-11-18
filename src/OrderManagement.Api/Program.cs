@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Api.Contracts;
 using OrderManagement.Api.ExceptionHandling;
 using OrderManagement.Application.Orders;
@@ -88,127 +89,157 @@ app.MapGet("/api/orders", async (
 
 app.MapPost("/api/orders/{id:guid}/submit", async (
     Guid id,
+    [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
     SubmitOrderHandler handler,
+    IIdempotencyExecutor idempotencyExecutor,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
-{
-    var result = await handler.HandleAsync(id, cancellationToken);
-
-    IResult response = result.Outcome switch
-    {
-        SubmitOrderOutcome.Submitted => Results.Ok(result.Order),
-        SubmitOrderOutcome.NotFound => Results.NotFound(),
-        SubmitOrderOutcome.Conflict => Results.Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Order cannot be submitted",
-            detail: $"An order in status '{result.Order!.Status}' cannot be submitted."),
-        _ => throw new InvalidOperationException("Unknown order submission outcome.")
-    };
-
-    return response;
-})
+    await ExecuteIdempotently(
+        idempotencyKey,
+        "submit",
+        id,
+        idempotencyExecutor,
+        token => handler.HandleAsync(id, token),
+        result => result.Outcome switch
+        {
+            SubmitOrderOutcome.Submitted => Results.Ok(result.Order),
+            SubmitOrderOutcome.NotFound => Results.NotFound(),
+            SubmitOrderOutcome.Conflict => Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Order cannot be submitted",
+                detail: $"An order in status '{result.Order!.Status}' cannot be submitted."),
+            _ => throw new InvalidOperationException("Unknown order submission outcome.")
+        },
+        httpContext,
+        cancellationToken))
 .WithName("SubmitOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
+.ProducesValidationProblem()
 .ProducesProblem(StatusCodes.Status409Conflict);
 
 app.MapPost("/api/orders/{id:guid}/confirm", async (
     Guid id,
+    [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
     ConfirmOrderHandler handler,
+    IIdempotencyExecutor idempotencyExecutor,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
-{
-    var result = await handler.HandleAsync(id, cancellationToken);
-
-    IResult response = result.Outcome switch
-    {
-        ConfirmOrderOutcome.Confirmed => Results.Ok(result.Order),
-        ConfirmOrderOutcome.NotFound => Results.NotFound(),
-        ConfirmOrderOutcome.Conflict => Results.Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Order cannot be confirmed",
-            detail: $"An order in status '{result.Order!.Status}' cannot be confirmed."),
-        _ => throw new InvalidOperationException("Unknown order confirmation outcome.")
-    };
-
-    return response;
-})
+    await ExecuteIdempotently(
+        idempotencyKey,
+        "confirm",
+        id,
+        idempotencyExecutor,
+        token => handler.HandleAsync(id, token),
+        result => result.Outcome switch
+        {
+            ConfirmOrderOutcome.Confirmed => Results.Ok(result.Order),
+            ConfirmOrderOutcome.NotFound => Results.NotFound(),
+            ConfirmOrderOutcome.Conflict => Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Order cannot be confirmed",
+                detail: $"An order in status '{result.Order!.Status}' cannot be confirmed."),
+            _ => throw new InvalidOperationException("Unknown order confirmation outcome.")
+        },
+        httpContext,
+        cancellationToken))
 .WithName("ConfirmOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
+.ProducesValidationProblem()
 .ProducesProblem(StatusCodes.Status409Conflict);
 
 app.MapPost("/api/orders/{id:guid}/process", async (
     Guid id,
+    [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
     ProcessOrderHandler handler,
+    IIdempotencyExecutor idempotencyExecutor,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
-{
-    var result = await handler.HandleAsync(id, cancellationToken);
-
-    IResult response = result.Outcome switch
-    {
-        ProcessOrderOutcome.ProcessingStarted => Results.Ok(result.Order),
-        ProcessOrderOutcome.NotFound => Results.NotFound(),
-        ProcessOrderOutcome.Conflict => Results.Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Order cannot be processed",
-            detail: $"An order in status '{result.Order!.Status}' cannot be processed."),
-        _ => throw new InvalidOperationException("Unknown order processing outcome.")
-    };
-
-    return response;
-})
+    await ExecuteIdempotently(
+        idempotencyKey,
+        "process",
+        id,
+        idempotencyExecutor,
+        token => handler.HandleAsync(id, token),
+        result => result.Outcome switch
+        {
+            ProcessOrderOutcome.ProcessingStarted => Results.Ok(result.Order),
+            ProcessOrderOutcome.NotFound => Results.NotFound(),
+            ProcessOrderOutcome.Conflict => Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Order cannot be processed",
+                detail: $"An order in status '{result.Order!.Status}' cannot be processed."),
+            _ => throw new InvalidOperationException("Unknown order processing outcome.")
+        },
+        httpContext,
+        cancellationToken))
 .WithName("ProcessOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
+.ProducesValidationProblem()
 .ProducesProblem(StatusCodes.Status409Conflict);
 
 app.MapPost("/api/orders/{id:guid}/fulfill", async (
     Guid id,
+    [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
     FulfillOrderHandler handler,
+    IIdempotencyExecutor idempotencyExecutor,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
-{
-    var result = await handler.HandleAsync(id, cancellationToken);
-
-    IResult response = result.Outcome switch
-    {
-        FulfillOrderOutcome.Fulfilled => Results.Ok(result.Order),
-        FulfillOrderOutcome.NotFound => Results.NotFound(),
-        FulfillOrderOutcome.Conflict => Results.Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Order cannot be fulfilled",
-            detail: $"An order in status '{result.Order!.Status}' cannot be fulfilled."),
-        _ => throw new InvalidOperationException("Unknown order fulfilment outcome.")
-    };
-
-    return response;
-})
+    await ExecuteIdempotently(
+        idempotencyKey,
+        "fulfill",
+        id,
+        idempotencyExecutor,
+        token => handler.HandleAsync(id, token),
+        result => result.Outcome switch
+        {
+            FulfillOrderOutcome.Fulfilled => Results.Ok(result.Order),
+            FulfillOrderOutcome.NotFound => Results.NotFound(),
+            FulfillOrderOutcome.Conflict => Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Order cannot be fulfilled",
+                detail: $"An order in status '{result.Order!.Status}' cannot be fulfilled."),
+            _ => throw new InvalidOperationException("Unknown order fulfilment outcome.")
+        },
+        httpContext,
+        cancellationToken))
 .WithName("FulfillOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
+.ProducesValidationProblem()
 .ProducesProblem(StatusCodes.Status409Conflict);
 
 app.MapPost("/api/orders/{id:guid}/cancel", async (
     Guid id,
+    [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
     CancelOrderHandler handler,
+    IIdempotencyExecutor idempotencyExecutor,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
-{
-    var result = await handler.HandleAsync(id, cancellationToken);
-
-    IResult response = result.Outcome switch
-    {
-        CancelOrderOutcome.Cancelled => Results.Ok(result.Order),
-        CancelOrderOutcome.NotFound => Results.NotFound(),
-        CancelOrderOutcome.Conflict => Results.Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Order cannot be cancelled",
-            detail: $"An order in status '{result.Order!.Status}' cannot be cancelled."),
-        _ => throw new InvalidOperationException("Unknown order cancellation outcome.")
-    };
-
-    return response;
-})
+    await ExecuteIdempotently(
+        idempotencyKey,
+        "cancel",
+        id,
+        idempotencyExecutor,
+        token => handler.HandleAsync(id, token),
+        result => result.Outcome switch
+        {
+            CancelOrderOutcome.Cancelled => Results.Ok(result.Order),
+            CancelOrderOutcome.NotFound => Results.NotFound(),
+            CancelOrderOutcome.Conflict => Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Order cannot be cancelled",
+                detail: $"An order in status '{result.Order!.Status}' cannot be cancelled."),
+            _ => throw new InvalidOperationException("Unknown order cancellation outcome.")
+        },
+        httpContext,
+        cancellationToken))
 .WithName("CancelOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
+.ProducesValidationProblem()
 .ProducesProblem(StatusCodes.Status409Conflict);
 
 app.MapGet("/api/orders/{id:guid}", async (
@@ -230,5 +261,37 @@ app.MapGet("/api/orders/{id:guid}", async (
 .Produces(StatusCodes.Status404NotFound);
 
 app.Run();
+
+static async Task<IResult> ExecuteIdempotently<T>(
+    string? key,
+    string operationName,
+    Guid orderId,
+    IIdempotencyExecutor executor,
+    Func<CancellationToken, Task<T>> operation,
+    Func<T, IResult> responseFactory,
+    HttpContext httpContext,
+    CancellationToken cancellationToken)
+{
+    if (string.IsNullOrWhiteSpace(key) || key.Length > 128)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["Idempotency-Key"] = ["A non-empty Idempotency-Key header of at most 128 characters is required."]
+        });
+    }
+
+    var execution = await executor.ExecuteAsync(
+        key,
+        $"{operationName}:{orderId:D}",
+        operation,
+        cancellationToken);
+
+    if (execution.Replayed)
+    {
+        httpContext.Response.Headers["Idempotency-Replayed"] = "true";
+    }
+
+    return responseFactory(execution.Value);
+}
 
 public partial class Program { }

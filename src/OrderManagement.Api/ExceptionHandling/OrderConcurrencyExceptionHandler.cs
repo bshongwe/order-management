@@ -10,18 +10,28 @@ public sealed class OrderConcurrencyExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        if (exception is not OrderConcurrencyException)
+        if (exception is OrderConcurrencyException)
         {
-            return false;
+            await Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Order was modified by another operation",
+                detail: "Reload the order and retry the operation.")
+                .ExecuteAsync(httpContext);
+
+            return true;
         }
 
-        httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+        if (exception is IdempotencyKeyConflictException)
+        {
+            await Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Idempotency key conflict",
+                detail: exception.Message)
+                .ExecuteAsync(httpContext);
 
-        await Results.Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Order was modified by another operation",
-            detail: "Reload the order and retry the operation.").ExecuteAsync(httpContext);
+            return true;
+        }
 
-        return true;
+        return false;
     }
 }

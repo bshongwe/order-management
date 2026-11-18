@@ -22,6 +22,7 @@ public static class DependencyInjection
 
         services.AddDbContext<OrdersDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IIdempotencyExecutor, SqlServerIdempotencyExecutor>();
 
         return services;
     }
