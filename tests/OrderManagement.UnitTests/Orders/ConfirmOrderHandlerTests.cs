@@ -4,22 +4,23 @@ using Xunit;
 
 namespace OrderManagement.UnitTests.Orders;
 
-public sealed class ConfirmOrderHandlerTests
+public sealed class ProcessOrderHandlerTests
 {
     [Fact]
-    public async Task HandleAsync_WhenOrderIsSubmitted_ConfirmsAndPersistsOrder()
+    public async Task HandleAsync_WhenOrderIsConfirmed_StartsProcessingAndPersistsOrder()
     {
         var order = Order.Create("CUSTOMER-100");
         order.Submit();
+        order.Confirm();
         var repository = new InMemoryOrderRepository([order]);
-        var handler = new ConfirmOrderHandler(repository);
+        var handler = new ProcessOrderHandler(repository);
 
         var result = await handler.HandleAsync(order.Id);
 
-        Assert.Equal(ConfirmOrderOutcome.Confirmed, result.Outcome);
+        Assert.Equal(ProcessOrderOutcome.ProcessingStarted, result.Outcome);
         Assert.NotNull(result.Order);
-        Assert.Equal(nameof(OrderStatus.Confirmed), result.Order.Status);
-        Assert.Equal(OrderStatus.Confirmed, order.Status);
+        Assert.Equal(nameof(OrderStatus.Processing), result.Order.Status);
+        Assert.Equal(OrderStatus.Processing, order.Status);
         Assert.Equal(1, repository.SaveChangesCount);
     }
 
@@ -27,44 +28,47 @@ public sealed class ConfirmOrderHandlerTests
     public async Task HandleAsync_WhenOrderDoesNotExist_ReturnsNotFound()
     {
         var repository = new InMemoryOrderRepository([]);
-        var handler = new ConfirmOrderHandler(repository);
+        var handler = new ProcessOrderHandler(repository);
 
         var result = await handler.HandleAsync(Guid.NewGuid());
 
-        Assert.Equal(ConfirmOrderOutcome.NotFound, result.Outcome);
+        Assert.Equal(ProcessOrderOutcome.NotFound, result.Outcome);
         Assert.Null(result.Order);
         Assert.Equal(0, repository.SaveChangesCount);
     }
 
-    [Fact]
-    public async Task HandleAsync_WhenOrderIsDraft_ReturnsConflictWithoutSaving()
+    [Theory]
+    [InlineData("Draft")]
+    [InlineData("Submitted")]
+    [InlineData("Processing")]
+    [InlineData("Cancelled")]
+    public async Task HandleAsync_WhenOrderIsNotConfirmed_ReturnsConflictWithoutSaving(string status)
     {
         var order = Order.Create("CUSTOMER-100");
+
+        switch (status)
+        {
+            case "Submitted":
+                order.Submit();
+                break;
+            case "Processing":
+                order.Submit();
+                order.Confirm();
+                order.StartProcessing();
+                break;
+            case "Cancelled":
+                order.Cancel();
+                break;
+        }
+
         var repository = new InMemoryOrderRepository([order]);
-        var handler = new ConfirmOrderHandler(repository);
+        var handler = new ProcessOrderHandler(repository);
 
         var result = await handler.HandleAsync(order.Id);
 
-        Assert.Equal(ConfirmOrderOutcome.Conflict, result.Outcome);
+        Assert.Equal(ProcessOrderOutcome.Conflict, result.Outcome);
         Assert.NotNull(result.Order);
-        Assert.Equal(nameof(OrderStatus.Draft), result.Order.Status);
-        Assert.Equal(0, repository.SaveChangesCount);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenOrderIsAlreadyConfirmed_ReturnsConflictWithoutSaving()
-    {
-        var order = Order.Create("CUSTOMER-100");
-        order.Submit();
-        order.Confirm();
-        var repository = new InMemoryOrderRepository([order]);
-        var handler = new ConfirmOrderHandler(repository);
-
-        var result = await handler.HandleAsync(order.Id);
-
-        Assert.Equal(ConfirmOrderOutcome.Conflict, result.Outcome);
-        Assert.NotNull(result.Order);
-        Assert.Equal(nameof(OrderStatus.Confirmed), result.Order.Status);
+        Assert.Equal(status, result.Order.Status);
         Assert.Equal(0, repository.SaveChangesCount);
     }
 
