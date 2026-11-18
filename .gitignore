@@ -1,0 +1,30 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+TestResults/
+coverage/
+
+# Node
+node_modules/
+dist/
+.vite/
+.npm/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local containers and data
+**/data/
