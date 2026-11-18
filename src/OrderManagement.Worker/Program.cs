@@ -1,0 +1,10 @@
+using OrderManagement.Application.Orders;
+using OrderManagement.Infrastructure;
+using OrderManagement.Worker;
+var builder=Host.CreateApplicationBuilder(args);
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddRabbitMqConnection(builder.Configuration);
+builder.Services.AddScoped<FulfillOrderHandler>();
+builder.Services.AddHostedService<OutboxPublisherService>();
+builder.Services.AddHostedService<OrderProcessingConsumer>();
+await builder.Build().RunAsync();

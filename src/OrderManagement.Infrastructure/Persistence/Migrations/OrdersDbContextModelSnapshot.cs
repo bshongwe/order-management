@@ -56,6 +56,21 @@ namespace OrderManagement.Infrastructure.Persistence.Migrations
     b.Property<string>("ResponseType").IsRequired().HasMaxLength(256).HasColumnType("nvarchar(256)");
     b.HasKey("Id"); b.HasIndex("Key").IsUnique(); b.ToTable("IdempotencyRecords",(string)null);
    });
+   modelBuilder.Entity("OrderManagement.Infrastructure.Messaging.OutboxMessage",b=>
+   {
+    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+    b.Property<int>("Attempts").HasColumnType("int");
+    b.Property<DateTimeOffset?>("DeadLetteredAtUtc").HasColumnType("datetimeoffset");
+    b.Property<string>("EventType").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
+    b.Property<DateTimeOffset?>("LeaseExpiresAtUtc").HasColumnType("datetimeoffset");
+    b.Property<Guid?>("LeaseId").HasColumnType("uniqueidentifier");
+    b.Property<string>("LastError").HasMaxLength(2000).HasColumnType("nvarchar(2000)");
+    b.Property<DateTimeOffset>("NextAttemptAtUtc").HasColumnType("datetimeoffset");
+    b.Property<DateTimeOffset>("OccurredAtUtc").HasColumnType("datetimeoffset");
+    b.Property<string>("Payload").IsRequired().HasColumnType("nvarchar(max)");
+    b.Property<DateTimeOffset?>("PublishedAtUtc").HasColumnType("datetimeoffset");
+    b.HasKey("Id"); b.HasIndex("PublishedAtUtc","DeadLetteredAtUtc","NextAttemptAtUtc"); b.ToTable("OutboxMessages",(string)null);
+   });
    modelBuilder.Entity("OrderManagement.Domain.Orders.Order",b=>
    {
     b.HasOne("OrderManagement.Domain.Customers.Customer",null).WithMany().HasForeignKey("CustomerId").OnDelete(DeleteBehavior.Restrict);
