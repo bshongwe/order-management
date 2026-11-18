@@ -73,6 +73,16 @@ public sealed class Order
         Status = OrderStatus.Processing;
     }
 
+    public void Fulfill()
+    {
+        if (Status != OrderStatus.Processing)
+        {
+            throw new InvalidOperationException("Only orders in processing can be fulfilled.");
+        }
+
+        Status = OrderStatus.Fulfilled;
+    }
+
     public void Cancel()
     {
         if (Status is OrderStatus.Fulfilled or OrderStatus.Cancelled)
