@@ -12,7 +12,7 @@ public sealed class OrderRepository(OrdersDbContext dbContext):IOrderRepository
     public Task<OrderDetails?> GetByIdAsync(Guid id,CancellationToken cancellationToken)=>
         dbContext.Orders.AsNoTracking().Where(x=>x.Id==id)
             .Select(x=>new OrderDetails(x.Id,x.CustomerReference,x.Status.ToString(),x.CreatedAtUtc,x.CustomerId,x.CurrencyCode,x.TotalAmount,
-                x.LineItems.Select(i=>new OrderLineItemDetails(i.Id,i.ProductSku,i.Quantity,i.UnitPrice,i.Quantity*i.UnitPrice)).ToList()))
+                x.LineItems.Select(i=>new OrderLineItemDetails(i.Id,i.ProductSku,i.Quantity,i.UnitPrice,i.Quantity*i.UnitPrice)).ToList(), EF.Property<byte[]>(x, "RowVersion")))
             .SingleOrDefaultAsync(cancellationToken);
     public Task<Order?> GetByIdForUpdateAsync(Guid id,CancellationToken cancellationToken)=>
         dbContext.Orders.Include(x=>x.LineItems).SingleOrDefaultAsync(x=>x.Id==id,cancellationToken);
