@@ -5,118 +5,64 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OrderManagement.Infrastructure.Persistence;
-
 #nullable disable
-
 namespace OrderManagement.Infrastructure.Persistence.Migrations
 {
-    [DbContext(typeof(OrdersDbContext))]
-    partial class OrdersDbContextModelSnapshot : ModelSnapshot
-    {
-        protected override void BuildModel(ModelBuilder modelBuilder)
-        {
+ [DbContext(typeof(OrdersDbContext))]
+ partial class OrdersDbContextModelSnapshot:ModelSnapshot
+ {
+  protected override void BuildModel(ModelBuilder modelBuilder)
+  {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
-
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("OrderManagement.Domain.Customers.Customer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CountryCode")
-                        .IsRequired()
-                        .IsFixedLength()
-                        .IsUnicode(false)
-                        .HasMaxLength(2)
-                        .HasColumnType("char(2)");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(254)
-                        .HasColumnType("nvarchar(254)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-                    b.HasIndex("CountryCode");
-                    b.HasIndex("Email").IsUnique();
-                    b.ToTable("Customers", (string)null);
-                });
-
-            modelBuilder.Entity("OrderManagement.Domain.Orders.Order", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("CustomerReference")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsRequired()
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.HasKey("Id");
-                    b.HasIndex("CustomerReference");
-                    b.ToTable("Orders", (string)null);
-                });
-
-            modelBuilder.Entity("OrderManagement.Infrastructure.Persistence.IdempotencyRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("RequestFingerprint")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("ResponseJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ResponseType")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-                    b.HasIndex("Key").IsUnique();
-                    b.ToTable("IdempotencyRecords", (string)null);
-                });
+   modelBuilder.HasAnnotation("ProductVersion","8.0.0").HasAnnotation("Relational:MaxIdentifierLength",128);
+   SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+   modelBuilder.Entity("OrderManagement.Domain.Customers.Customer",b=>
+   {
+    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+    b.Property<string>("CountryCode").IsRequired().IsFixedLength().IsUnicode(false).HasMaxLength(2).HasColumnType("char(2)");
+    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("datetimeoffset");
+    b.Property<string>("Email").IsRequired().HasMaxLength(254).HasColumnType("nvarchar(254)");
+    b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
+    b.HasKey("Id"); b.HasIndex("CountryCode"); b.HasIndex("Email").IsUnique(); b.ToTable("Customers",(string)null);
+   });
+   modelBuilder.Entity("OrderManagement.Domain.Orders.Order",b=>
+   {
+    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("datetimeoffset");
+    b.Property<Guid?>("CustomerId").HasColumnType("uniqueidentifier");
+    b.Property<string>("CustomerReference").IsRequired().HasMaxLength(64).HasColumnType("nvarchar(64)");
+    b.Property<string>("CurrencyCode").IsFixedLength().IsUnicode(false).HasMaxLength(3).HasColumnType("char(3)");
+    b.Property<byte[]>("RowVersion").IsRequired().IsConcurrencyToken().ValueGeneratedOnAddOrUpdate().HasColumnType("rowversion");
+    b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("nvarchar(32)");
+    b.Property<decimal?>("TotalAmount").HasPrecision(18,2).HasColumnType("decimal(18,2)");
+    b.HasKey("Id"); b.HasIndex("CustomerReference"); b.HasIndex("CustomerId","Status","CreatedAtUtc"); b.ToTable("Orders",(string)null);
+   });
+   modelBuilder.Entity("OrderManagement.Domain.Orders.OrderLineItem",b=>
+   {
+    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+    b.Property<Guid>("OrderId").HasColumnType("uniqueidentifier");
+    b.Property<string>("ProductSku").IsRequired().HasMaxLength(64).HasColumnType("nvarchar(64)");
+    b.Property<int>("Quantity").HasColumnType("int");
+    b.Property<decimal>("UnitPrice").HasPrecision(18,2).HasColumnType("decimal(18,2)");
+    b.HasKey("Id"); b.HasIndex("OrderId"); b.ToTable("OrderLineItems",(string)null);
+   });
+   modelBuilder.Entity("OrderManagement.Infrastructure.Persistence.IdempotencyRecord",b=>
+   {
+    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+    b.Property<DateTimeOffset>("CreatedAtUtc").HasColumnType("datetimeoffset");
+    b.Property<string>("Key").IsRequired().HasMaxLength(128).HasColumnType("nvarchar(128)");
+    b.Property<string>("RequestFingerprint").IsRequired().HasMaxLength(256).HasColumnType("nvarchar(256)");
+    b.Property<string>("ResponseJson").IsRequired().HasColumnType("nvarchar(max)");
+    b.Property<string>("ResponseType").IsRequired().HasMaxLength(256).HasColumnType("nvarchar(256)");
+    b.HasKey("Id"); b.HasIndex("Key").IsUnique(); b.ToTable("IdempotencyRecords",(string)null);
+   });
+   modelBuilder.Entity("OrderManagement.Domain.Orders.Order",b=>
+   {
+    b.HasOne("OrderManagement.Domain.Customers.Customer",null).WithMany().HasForeignKey("CustomerId").OnDelete(DeleteBehavior.Restrict);
+    b.HasMany("OrderManagement.Domain.Orders.OrderLineItem","LineItems").WithOne().HasForeignKey("OrderId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+    b.Navigation("LineItems").UsePropertyAccessMode(PropertyAccessMode.Field);
+   });
 #pragma warning restore 612, 618
-        }
-    }
+  }
+ }
 }

@@ -1,3 +1,2 @@
 namespace OrderManagement.Application.Orders;
-
-public sealed record CreateOrderResult(Guid Id, string CustomerReference, string Status, DateTimeOffset CreatedAtUtc);
+public sealed record CreateOrderResult(Guid Id,string CustomerReference,string Status,DateTimeOffset CreatedAtUtc,Guid? CustomerId=null,string? CurrencyCode=null,decimal? TotalAmount=null);
