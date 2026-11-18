@@ -39,6 +39,7 @@ partial class AddOrderRowVersion
                 .HasColumnType("nvarchar(64)");
 
             entity.Property<byte[]>("RowVersion")
+                .IsRequired()
                 .IsConcurrencyToken()
                 .ValueGeneratedOnAddOrUpdate()
                 .HasColumnType("rowversion");
