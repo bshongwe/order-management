@@ -53,6 +53,16 @@ public sealed class Order
         Status = OrderStatus.Submitted;
     }
 
+    public void Confirm()
+    {
+        if (Status != OrderStatus.Submitted)
+        {
+            throw new InvalidOperationException("Only submitted orders can be confirmed.");
+        }
+
+        Status = OrderStatus.Confirmed;
+    }
+
     public void Cancel()
     {
         if (Status is OrderStatus.Fulfilled or OrderStatus.Cancelled)
