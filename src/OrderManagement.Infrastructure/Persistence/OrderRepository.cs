@@ -30,9 +30,18 @@ public sealed class OrderRepository(OrdersDbContext dbContext) : IOrderRepositor
         return dbContext.Orders.SingleOrDefaultAsync(order => order.Id == id, cancellationToken);
     }
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
-        return dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new OrderConcurrencyException(
+                "The order was modified by another operation.",
+                exception);
+        }
     }
 
     public async Task<OrderPage> GetPageAsync(

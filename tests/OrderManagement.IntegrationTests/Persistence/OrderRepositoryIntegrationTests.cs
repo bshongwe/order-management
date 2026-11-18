@@ -19,7 +19,7 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    public async Task MigrateAsync_AppliesInitialCreateMigration()
+    public async Task MigrateAsync_AppliesCurrentMigrationsAndConcurrencyMetadata()
     {
         await using var dbContext = fixture.CreateDbContext();
 
@@ -27,7 +27,53 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
         var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
 
         Assert.Contains("20261118144526_InitialCreate", appliedMigrations);
+        Assert.Contains("20261118203000_AddOrderRowVersion", appliedMigrations);
         Assert.Empty(pendingMigrations);
+
+        var rowVersion = dbContext.Model.FindEntityType(typeof(Order))!
+            .FindProperty("RowVersion");
+
+        Assert.NotNull(rowVersion);
+        Assert.True(rowVersion.IsConcurrencyToken);
+        Assert.Equal(Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAddOrUpdate, rowVersion.ValueGenerated);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenOrderWasUpdatedByAnotherContext_ThrowsConcurrencyException()
+    {
+        var order = Order.Create("CUSTOMER-CONCURRENT");
+
+        await using (var seedContext = fixture.CreateDbContext())
+        {
+            await new OrderRepository(seedContext).AddAsync(order, CancellationToken.None);
+        }
+
+        await using var firstContext = fixture.CreateDbContext();
+        await using var secondContext = fixture.CreateDbContext();
+
+        var firstRepository = new OrderRepository(firstContext);
+        var secondRepository = new OrderRepository(secondContext);
+
+        var firstCopy = await firstRepository.GetByIdForUpdateAsync(order.Id, CancellationToken.None);
+        var secondCopy = await secondRepository.GetByIdForUpdateAsync(order.Id, CancellationToken.None);
+
+        Assert.NotNull(firstCopy);
+        Assert.NotNull(secondCopy);
+
+        firstCopy.Submit();
+        await firstRepository.SaveChangesAsync(CancellationToken.None);
+
+        secondCopy.Cancel();
+
+        await Assert.ThrowsAsync<OrderConcurrencyException>(
+            () => secondRepository.SaveChangesAsync(CancellationToken.None));
+
+        await using var verificationContext = fixture.CreateDbContext();
+        var persistedOrder = await verificationContext.Orders
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == order.Id);
+
+        Assert.Equal(OrderStatus.Submitted, persistedOrder.Status);
     }
 
     [Fact]
