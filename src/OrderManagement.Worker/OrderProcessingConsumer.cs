@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OrderManagement.Application.Orders;
 using OrderManagement.Domain.Orders;
+using OrderManagement.Infrastructure.Messaging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 namespace OrderManagement.Worker;
@@ -46,8 +47,13 @@ public sealed class OrderProcessingConsumer(IServiceScopeFactory scopeFactory,IC
                 ?$"Order '{message.OrderId}' was not found."
                 :$"Order '{message.OrderId}' is not ready for fulfilment (status '{result.Order?.Status}').");
         }
-        catch(Exception exception) when(!token.IsCancellationRequested)
+        catch(Exception exception)
         {
+            if(token.IsCancellationRequested)
+            {
+                try{channel.BasicNack(args.DeliveryTag,false,requeue:true);}catch{}
+                return;
+            }
             logger.LogError(exception,"Order processing event failed");
             try
             {
