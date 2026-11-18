@@ -108,7 +108,7 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
         Assert.Equal(3, firstPage.TotalCount);
         Assert.Equal(2, firstPage.TotalPages);
         Assert.Equal(2, firstPage.Items.Count);
-        Assert.Equal(1, secondPage.Items.Count);
+        Assert.Single(secondPage.Items);
         Assert.Equal(3, firstPage.Items.Count + secondPage.Items.Count);
         Assert.All(firstPage.Items.Concat(secondPage.Items), item =>
             Assert.Equal(nameof(OrderStatus.Draft), item.Status));
