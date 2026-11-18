@@ -12,6 +12,7 @@ builder.Services.AddScoped<GetOrdersHandler>();
 builder.Services.AddScoped<SubmitOrderHandler>();
 builder.Services.AddScoped<CancelOrderHandler>();
 builder.Services.AddScoped<ConfirmOrderHandler>();
+builder.Services.AddScoped<ProcessOrderHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
@@ -128,6 +129,31 @@ app.MapPost("/api/orders/{id:guid}/confirm", async (
     return response;
 })
 .WithName("ConfirmOrder")
+.Produces<OrderDetails>()
+.Produces(StatusCodes.Status404NotFound)
+.ProducesProblem(StatusCodes.Status409Conflict);
+
+app.MapPost("/api/orders/{id:guid}/process", async (
+    Guid id,
+    ProcessOrderHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(id, cancellationToken);
+
+    IResult response = result.Outcome switch
+    {
+        ProcessOrderOutcome.ProcessingStarted => Results.Ok(result.Order),
+        ProcessOrderOutcome.NotFound => Results.NotFound(),
+        ProcessOrderOutcome.Conflict => Results.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Order cannot be processed",
+            detail: $"An order in status '{result.Order!.Status}' cannot be processed."),
+        _ => throw new InvalidOperationException("Unknown order processing outcome.")
+    };
+
+    return response;
+})
+.WithName("ProcessOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesProblem(StatusCodes.Status409Conflict);
