@@ -41,5 +41,35 @@ public sealed class CreateOrderHandlerTests
             Orders.Add(order);
             return Task.CompletedTask;
         }
+
+        public Task<OrderDetails?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            var order = Orders.SingleOrDefault(candidate => candidate.Id == id);
+            return Task.FromResult(order is null
+                ? null
+                : new OrderDetails(order.Id, order.CustomerReference, order.Status.ToString(), order.CreatedAtUtc));
+        }
+
+        public Task<OrderPage> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken)
+        {
+            var ordered = Orders
+                .OrderByDescending(order => order.CreatedAtUtc)
+                .ThenBy(order => order.Id)
+                .ToArray();
+            var items = ordered
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(order => new OrderSummary(
+                    order.Id,
+                    order.CustomerReference,
+                    order.Status.ToString(),
+                    order.CreatedAtUtc))
+                .ToArray();
+            var totalPages = ordered.Length == 0
+                ? 0
+                : (int)Math.Ceiling(ordered.Length / (double)pageSize);
+
+            return Task.FromResult(new OrderPage(items, page, pageSize, ordered.Length, totalPages));
+        }
     }
 }
