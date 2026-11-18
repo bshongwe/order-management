@@ -1,16 +1,36 @@
 using Microsoft.EntityFrameworkCore;
+using OrderManagement.Domain.Customers;
 using OrderManagement.Domain.Orders;
 
 namespace OrderManagement.Infrastructure.Persistence;
 
 public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options) : DbContext(options)
 {
+    public DbSet<Customer> Customers => Set<Customer>();
+
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.ToTable("Customers");
+            entity.HasKey(customer => customer.Id);
+            entity.Property(customer => customer.Name).HasMaxLength(200).IsRequired();
+            entity.Property(customer => customer.Email).HasMaxLength(254).IsRequired();
+            entity.Property(customer => customer.CountryCode)
+                .HasColumnType("char(2)")
+                .IsFixedLength()
+                .IsUnicode(false)
+                .HasMaxLength(2)
+                .IsRequired();
+            entity.Property(customer => customer.CreatedAtUtc).IsRequired();
+            entity.HasIndex(customer => customer.Email).IsUnique();
+            entity.HasIndex(customer => customer.CountryCode);
+        });
+
         modelBuilder.Entity<Order>(entity =>
         {
             entity.ToTable("Orders");
