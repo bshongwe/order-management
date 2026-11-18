@@ -108,6 +108,35 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
     }
 
     [Fact]
+    public async Task ProcessOrderHandler_WhenOrderIsConfirmed_PersistsProcessingStatus()
+    {
+        var order = Order.Create("CUSTOMER-170");
+        order.Submit();
+        order.Confirm();
+
+        await using (var writeContext = fixture.CreateDbContext())
+        {
+            await new OrderRepository(writeContext).AddAsync(order, CancellationToken.None);
+        }
+
+        await using (var updateContext = fixture.CreateDbContext())
+        {
+            var handler = new ProcessOrderHandler(new OrderRepository(updateContext));
+            var result = await handler.HandleAsync(order.Id, CancellationToken.None);
+
+            Assert.Equal(ProcessOrderOutcome.ProcessingStarted, result.Outcome);
+            Assert.Equal(nameof(OrderStatus.Processing), result.Order!.Status);
+        }
+
+        await using var readContext = fixture.CreateDbContext();
+        var persistedOrder = await readContext.Orders
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == order.Id);
+
+        Assert.Equal(OrderStatus.Processing, persistedOrder.Status);
+    }
+
+    [Fact]
     public async Task CancelOrderHandler_WhenOrderIsSubmitted_PersistsCancelledStatus()
     {
         var order = Order.Create("CUSTOMER-175");
