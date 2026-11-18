@@ -13,6 +13,7 @@ builder.Services.AddScoped<SubmitOrderHandler>();
 builder.Services.AddScoped<CancelOrderHandler>();
 builder.Services.AddScoped<ConfirmOrderHandler>();
 builder.Services.AddScoped<ProcessOrderHandler>();
+builder.Services.AddScoped<FulfillOrderHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
@@ -154,6 +155,31 @@ app.MapPost("/api/orders/{id:guid}/process", async (
     return response;
 })
 .WithName("ProcessOrder")
+.Produces<OrderDetails>()
+.Produces(StatusCodes.Status404NotFound)
+.ProducesProblem(StatusCodes.Status409Conflict);
+
+app.MapPost("/api/orders/{id:guid}/fulfill", async (
+    Guid id,
+    FulfillOrderHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(id, cancellationToken);
+
+    IResult response = result.Outcome switch
+    {
+        FulfillOrderOutcome.Fulfilled => Results.Ok(result.Order),
+        FulfillOrderOutcome.NotFound => Results.NotFound(),
+        FulfillOrderOutcome.Conflict => Results.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Order cannot be fulfilled",
+            detail: $"An order in status '{result.Order!.Status}' cannot be fulfilled."),
+        _ => throw new InvalidOperationException("Unknown order fulfilment outcome.")
+    };
+
+    return response;
+})
+.WithName("FulfillOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesProblem(StatusCodes.Status409Conflict);
