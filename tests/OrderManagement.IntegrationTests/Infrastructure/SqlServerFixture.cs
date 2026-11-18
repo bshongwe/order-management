@@ -9,7 +9,7 @@ public sealed class SqlServerFixture : IAsyncLifetime
 {
     private readonly MsSqlContainer _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
         .WithDatabase("OrderManagementIntegrationTests")
-        .WithPassword("Integration_test_Password123!")
+        .WithPassword($"Test_{Guid.NewGuid():N}aA1!")
         .Build();
 
     public string ConnectionString => _container.GetConnectionString();
