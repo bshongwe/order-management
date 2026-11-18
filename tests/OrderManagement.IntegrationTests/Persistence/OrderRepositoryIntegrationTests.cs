@@ -19,7 +19,7 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    public async Task MigrateAsync_AppliesInitialCreateMigration()
+    public async Task MigrateAsync_AppliesCurrentMigrationsAndConcurrencyMetadata()
     {
         await using var dbContext = fixture.CreateDbContext();
 
