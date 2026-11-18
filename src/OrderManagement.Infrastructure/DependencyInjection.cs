@@ -12,8 +12,13 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Orders")
-            ?? throw new InvalidOperationException("Connection string 'Orders' is not configured.");
+        var connectionString = configuration.GetConnectionString("Orders");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Connection string 'Orders' is not configured. Set ConnectionStrings__Orders.");
+        }
 
         services.AddDbContext<OrdersDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<IOrderRepository, OrderRepository>();
