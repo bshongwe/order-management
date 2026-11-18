@@ -260,7 +260,8 @@ app.MapPost("/api/orders/{id:guid}/confirm", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/process", async (
     Guid id,
@@ -291,7 +292,8 @@ app.MapPost("/api/orders/{id:guid}/process", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/fulfill", async (
     Guid id,
@@ -322,7 +324,8 @@ app.MapPost("/api/orders/{id:guid}/fulfill", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/cancel", async (
     Guid id,
@@ -353,7 +356,8 @@ app.MapPost("/api/orders/{id:guid}/cancel", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapGet("/api/orders/{id:guid}", async (
     Guid id,
@@ -371,7 +375,8 @@ app.MapGet("/api/orders/{id:guid}", async (
 })
 .WithName("GetOrderById")
 .Produces<OrderDetails>()
-.Produces(StatusCodes.Status404NotFound);
+.Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization("Orders.Read");
 
 app.Run();
 

@@ -14,6 +14,9 @@ public sealed class EntraPermissionHandler : AuthorizationHandler<EntraPermissio
         AuthorizationHandlerContext context,
         EntraPermissionRequirement requirement)
     {
+        if (context.User.Identity?.IsAuthenticated != true)
+            return Task.CompletedTask;
+
         var hasAppRole = context.User.Claims.Any(claim =>
             (claim.Type == "roles" || claim.Type == ClaimTypes.Role) &&
             string.Equals(claim.Value, requirement.Permission, StringComparison.Ordinal));
