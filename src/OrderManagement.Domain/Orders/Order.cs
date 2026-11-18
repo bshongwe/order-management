@@ -63,6 +63,16 @@ public sealed class Order
         Status = OrderStatus.Confirmed;
     }
 
+    public void StartProcessing()
+    {
+        if (Status != OrderStatus.Confirmed)
+        {
+            throw new InvalidOperationException("Only confirmed orders can start processing.");
+        }
+
+        Status = OrderStatus.Processing;
+    }
+
     public void Cancel()
     {
         if (Status is OrderStatus.Fulfilled or OrderStatus.Cancelled)
