@@ -26,13 +26,13 @@ public sealed class OrderProcessingConsumer(IServiceScopeFactory scopeFactory,IC
             ["x-dead-letter-routing-key"]=RoutingKey
         });
         channel.BasicQos(0,1,false);
-        var consumer=new EventingBasicConsumer(channel);
-        consumer.Received+=(sender,args)=>HandleDelivery(channel,args,stoppingToken);
+        var consumer=new AsyncEventingBasicConsumer(channel);
+        consumer.Received+=async (sender,args)=>await HandleDelivery(channel,args,stoppingToken);
         channel.BasicConsume(Queue,autoAck:false,consumer);
         try{await Task.Delay(Timeout.Infinite,stoppingToken);}
         catch(OperationCanceledException) when(stoppingToken.IsCancellationRequested){}
     }
-    private async void HandleDelivery(IModel channel,BasicDeliverEventArgs args,CancellationToken token)
+    private async Task HandleDelivery(IModel channel,BasicDeliverEventArgs args,CancellationToken token)
     {
         try
         {

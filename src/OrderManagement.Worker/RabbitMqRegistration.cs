@@ -14,7 +14,7 @@ public static class RabbitMqRegistration
                 Port=int.TryParse(configuration["RabbitMq:Port"],out var port)?port:5672,
                 UserName=configuration["RabbitMq:Username"]??"guest",
                 Password=configuration["RabbitMq:Password"]??"guest",
-                DispatchConsumersAsync=false,
+                DispatchConsumersAsync=true,
                 AutomaticRecoveryEnabled=true,
                 NetworkRecoveryInterval=TimeSpan.FromSeconds(10)
             };
