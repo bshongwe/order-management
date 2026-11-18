@@ -1,10 +1,12 @@
 using OrderManagement.Api.Contracts;
+using OrderManagement.Api.ExceptionHandling;
 using OrderManagement.Application.Orders;
 using OrderManagement.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<OrderConcurrencyExceptionHandler>();
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<CreateOrderHandler>();
 builder.Services.AddScoped<GetOrderByIdHandler>();
