@@ -7,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<CreateOrderHandler>();
+builder.Services.AddScoped<GetOrderByIdHandler>();
+builder.Services.AddScoped<GetOrdersHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
@@ -42,6 +44,51 @@ app.MapPost("/api/orders", async (
 .WithName("CreateOrder")
 .Produces<CreateOrderResult>(StatusCodes.Status201Created)
 .ProducesValidationProblem();
+
+app.MapGet("/api/orders", async (
+    int? page,
+    int? pageSize,
+    GetOrdersHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var query = new GetOrdersQuery(
+        page ?? 1,
+        pageSize ?? GetOrdersHandler.DefaultPageSize);
+
+    try
+    {
+        var result = await handler.HandleAsync(query, cancellationToken);
+        return (IResult)Results.Ok(result);
+    }
+    catch (ArgumentOutOfRangeException exception)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [exception.ParamName ?? "query"] = [exception.Message]
+        });
+    }
+})
+.WithName("GetOrders")
+.Produces<OrderPage>()
+.ProducesValidationProblem();
+
+app.MapGet("/api/orders/{id:guid}", async (
+    Guid id,
+    GetOrderByIdHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(new GetOrderByIdQuery(id), cancellationToken);
+
+    if (result is null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(result);
+})
+.WithName("GetOrderById")
+.Produces<OrderDetails>()
+.Produces(StatusCodes.Status404NotFound);
 
 app.Run();
 
