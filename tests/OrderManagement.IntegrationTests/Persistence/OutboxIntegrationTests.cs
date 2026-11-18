@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrderManagement.Domain.Orders;
 using OrderManagement.Infrastructure.Persistence;
+using OrderManagement.IntegrationTests.Infrastructure;
 using Xunit;
 namespace OrderManagement.IntegrationTests.Persistence;
 [Collection(SqlServerCollection.Name)]
