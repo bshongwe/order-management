@@ -25,6 +25,16 @@ public sealed class OrderRepository(OrdersDbContext dbContext) : IOrderRepositor
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    public Task<Order?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.Orders.SingleOrDefaultAsync(order => order.Id == id, cancellationToken);
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        return dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<OrderPage> GetPageAsync(
         int page,
         int pageSize,

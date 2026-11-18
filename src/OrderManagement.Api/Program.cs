@@ -9,6 +9,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddScoped<CreateOrderHandler>();
 builder.Services.AddScoped<GetOrderByIdHandler>();
 builder.Services.AddScoped<GetOrdersHandler>();
+builder.Services.AddScoped<SubmitOrderHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
@@ -78,6 +79,31 @@ app.MapGet("/api/orders", async (
 .WithName("GetOrders")
 .Produces<OrderPage>()
 .ProducesValidationProblem();
+
+app.MapPost("/api/orders/{id:guid}/submit", async (
+    Guid id,
+    SubmitOrderHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(id, cancellationToken);
+
+    IResult response = result.Outcome switch
+    {
+        SubmitOrderOutcome.Submitted => Results.Ok(result.Order),
+        SubmitOrderOutcome.NotFound => Results.NotFound(),
+        SubmitOrderOutcome.Conflict => Results.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Order cannot be submitted",
+            detail: $"An order in status '{result.Order!.Status}' cannot be submitted."),
+        _ => throw new InvalidOperationException("Unknown order submission outcome.")
+    };
+
+    return response;
+})
+.WithName("SubmitOrder")
+.Produces<OrderDetails>()
+.Produces(StatusCodes.Status404NotFound)
+.ProducesProblem(StatusCodes.Status409Conflict);
 
 app.MapGet("/api/orders/{id:guid}", async (
     Guid id,

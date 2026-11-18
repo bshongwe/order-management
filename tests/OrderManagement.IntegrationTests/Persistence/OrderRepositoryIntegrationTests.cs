@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OrderManagement.Application.Orders;
 using OrderManagement.Domain.Orders;
 using OrderManagement.Infrastructure.Persistence;
 using OrderManagement.IntegrationTests.Infrastructure;
@@ -49,6 +50,33 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
         Assert.Equal("CUSTOMER-100", persistedOrder.CustomerReference);
         Assert.Equal(OrderStatus.Submitted, persistedOrder.Status);
         Assert.Equal(order.CreatedAtUtc, persistedOrder.CreatedAtUtc);
+    }
+
+    [Fact]
+    public async Task SubmitOrderHandler_WhenOrderIsDraft_PersistsSubmittedStatus()
+    {
+        var order = Order.Create("CUSTOMER-150");
+
+        await using (var writeContext = fixture.CreateDbContext())
+        {
+            await new OrderRepository(writeContext).AddAsync(order, CancellationToken.None);
+        }
+
+        await using (var updateContext = fixture.CreateDbContext())
+        {
+            var handler = new SubmitOrderHandler(new OrderRepository(updateContext));
+            var result = await handler.HandleAsync(order.Id, CancellationToken.None);
+
+            Assert.Equal(SubmitOrderOutcome.Submitted, result.Outcome);
+            Assert.Equal(nameof(OrderStatus.Submitted), result.Order!.Status);
+        }
+
+        await using var readContext = fixture.CreateDbContext();
+        var persistedOrder = await readContext.Orders
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == order.Id);
+
+        Assert.Equal(OrderStatus.Submitted, persistedOrder.Status);
     }
 
     [Fact]

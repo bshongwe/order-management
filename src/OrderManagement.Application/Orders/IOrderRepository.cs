@@ -8,5 +8,9 @@ public interface IOrderRepository
 
     Task<OrderDetails?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<Order?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken);
+
     Task<OrderPage> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken);
 }

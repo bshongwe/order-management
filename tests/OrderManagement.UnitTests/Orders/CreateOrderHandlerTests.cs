@@ -42,6 +42,13 @@ public sealed class CreateOrderHandlerTests
             return Task.CompletedTask;
         }
 
+        public Task<Order?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Orders.SingleOrDefault(candidate => candidate.Id == id));
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
         public Task<OrderDetails?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             var order = Orders.SingleOrDefault(candidate => candidate.Id == id);
