@@ -10,6 +10,7 @@ builder.Services.AddScoped<CreateOrderHandler>();
 builder.Services.AddScoped<GetOrderByIdHandler>();
 builder.Services.AddScoped<GetOrdersHandler>();
 builder.Services.AddScoped<SubmitOrderHandler>();
+builder.Services.AddScoped<CancelOrderHandler>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
@@ -101,6 +102,31 @@ app.MapPost("/api/orders/{id:guid}/submit", async (
     return response;
 })
 .WithName("SubmitOrder")
+.Produces<OrderDetails>()
+.Produces(StatusCodes.Status404NotFound)
+.ProducesProblem(StatusCodes.Status409Conflict);
+
+app.MapPost("/api/orders/{id:guid}/cancel", async (
+    Guid id,
+    CancelOrderHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(id, cancellationToken);
+
+    IResult response = result.Outcome switch
+    {
+        CancelOrderOutcome.Cancelled => Results.Ok(result.Order),
+        CancelOrderOutcome.NotFound => Results.NotFound(),
+        CancelOrderOutcome.Conflict => Results.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Order cannot be cancelled",
+            detail: $"An order in status '{result.Order!.Status}' cannot be cancelled."),
+        _ => throw new InvalidOperationException("Unknown order cancellation outcome.")
+    };
+
+    return response;
+})
+.WithName("CancelOrder")
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesProblem(StatusCodes.Status409Conflict);
