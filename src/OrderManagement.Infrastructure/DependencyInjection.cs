@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OrderManagement.Application.Customers;
 using OrderManagement.Application.Orders;
 using OrderManagement.Infrastructure.Persistence;
 
@@ -22,7 +21,6 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<OrdersDbContext>(options => options.UseSqlServer(connectionString));
-        services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IIdempotencyExecutor, SqlServerIdempotencyExecutor>();
 

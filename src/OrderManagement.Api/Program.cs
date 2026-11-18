@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderManagement.Api.Contracts;
 using OrderManagement.Api.ExceptionHandling;
-using OrderManagement.Application.Customers;
 using OrderManagement.Application.Orders;
 using OrderManagement.Infrastructure;
 
@@ -10,9 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<OrderConcurrencyExceptionHandler>();
 builder.Services.AddHealthChecks();
-builder.Services.AddScoped<CreateCustomerHandler>();
-builder.Services.AddScoped<GetCustomerByIdHandler>();
-builder.Services.AddScoped<GetCustomersHandler>();
 builder.Services.AddScoped<CreateOrderHandler>();
 builder.Services.AddScoped<GetOrderByIdHandler>();
 builder.Services.AddScoped<GetOrdersHandler>();
@@ -33,80 +29,6 @@ app.MapGet("/", () => Results.Ok(new
     service = "SADC Order Management API",
     status = "Running"
 }));
-
-app.MapPost("/api/customers", async (
-    CreateCustomerRequest request,
-    CreateCustomerHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    try
-    {
-        var result = await handler.HandleAsync(
-            new CreateCustomerCommand(request.Name, request.Email, request.CountryCode),
-            cancellationToken);
-
-        return (IResult)Results.Created($"/api/customers/{result.Id}", result);
-    }
-    catch (ArgumentException exception)
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            [exception.ParamName ?? "customer"] = [exception.Message]
-        });
-    }
-})
-.WithName("CreateCustomer")
-.Produces<CustomerDetails>(StatusCodes.Status201Created)
-.ProducesValidationProblem();
-
-app.MapGet("/api/customers/{id:guid}", async (
-    Guid id,
-    GetCustomerByIdHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var customer = await handler.HandleAsync(id, cancellationToken);
-    return customer is null ? Results.NotFound() : Results.Ok(customer);
-})
-.WithName("GetCustomerById")
-.Produces<CustomerDetails>()
-.Produces(StatusCodes.Status404NotFound);
-
-app.MapGet("/api/customers", async (
-    string? search,
-    int? page,
-    int? pageSize,
-    GetCustomersHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    try
-    {
-        var result = await handler.HandleAsync(
-            new GetCustomersQuery(
-                search,
-                page ?? 1,
-                pageSize ?? GetCustomersHandler.DefaultPageSize),
-            cancellationToken);
-
-        return (IResult)Results.Ok(result);
-    }
-    catch (ArgumentOutOfRangeException exception)
-    {
-        var field = exception.ParamName switch
-        {
-            nameof(GetCustomersQuery.Page) => "page",
-            nameof(GetCustomersQuery.PageSize) => "pageSize",
-            _ => "query"
-        };
-
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            [field] = [exception.Message]
-        });
-    }
-})
-.WithName("GetCustomers")
-.Produces<CustomerPage>()
-.ProducesValidationProblem();
 
 app.MapPost("/api/orders", async (
     CreateOrderRequest request,

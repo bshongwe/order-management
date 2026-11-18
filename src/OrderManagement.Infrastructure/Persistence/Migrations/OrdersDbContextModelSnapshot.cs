@@ -22,38 +22,6 @@ namespace OrderManagement.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("OrderManagement.Domain.Customers.Customer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CountryCode")
-                        .IsRequired()
-                        .IsFixedLength()
-                        .IsUnicode(false)
-                        .HasMaxLength(2)
-                        .HasColumnType("char(2)");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(254)
-                        .HasColumnType("nvarchar(254)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-                    b.HasIndex("CountryCode");
-                    b.HasIndex("Email").IsUnique();
-                    b.ToTable("Customers", (string)null);
-                });
-
             modelBuilder.Entity("OrderManagement.Domain.Orders.Order", b =>
                 {
                     b.Property<Guid>("Id")
