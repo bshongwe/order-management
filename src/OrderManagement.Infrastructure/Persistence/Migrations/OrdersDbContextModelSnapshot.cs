@@ -37,6 +37,7 @@ namespace OrderManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(64)");
 
                     b.Property<byte[]>("RowVersion")
+                        .IsRequired()
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
