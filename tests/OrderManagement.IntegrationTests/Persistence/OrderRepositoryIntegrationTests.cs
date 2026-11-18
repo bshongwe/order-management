@@ -259,6 +259,8 @@ public sealed class OrderRepositoryIntegrationTests(SqlServerFixture fixture) : 
         Assert.Equal("CUSTOMER-200", result.CustomerReference);
         Assert.Equal(nameof(OrderStatus.Draft), result.Status);
         Assert.Equal(order.CreatedAtUtc, result.CreatedAtUtc);
+        Assert.NotNull(result.RowVersion);
+        Assert.NotEmpty(result.RowVersion);
     }
 
     [Fact]

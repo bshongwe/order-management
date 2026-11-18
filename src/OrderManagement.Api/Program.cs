@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Models;
+using OrderManagement.Api.Observability;
 using OrderManagement.Api.Authentication;
 using OrderManagement.Api.Contracts;
 using OrderManagement.Api.ExceptionHandling;
@@ -12,6 +14,23 @@ using OrderManagement.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "SADC Order Management API", Version = "v1" });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization", Type = SecuritySchemeType.Http, Scheme = "bearer",
+        BearerFormat = "JWT", In = ParameterLocation.Header
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecurityScheme
+        {
+            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+        }] = Array.Empty<string>()
+    });
+});
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     policy.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
         .AllowAnyHeader()
@@ -59,7 +78,14 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<RequestMetricsMiddleware>();
 app.UseExceptionHandler();
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("OpenApi:Enabled"))
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -367,17 +393,17 @@ app.MapPost("/api/orders/{id:guid}/cancel", async (
 .RequireAuthorization("Orders.Write");
 
 app.MapGet("/api/orders/{id:guid}", async (
-    Guid id,
-    GetOrderByIdHandler handler,
-    CancellationToken cancellationToken) =>
+    Guid id, GetOrderByIdHandler handler, HttpContext httpContext, CancellationToken cancellationToken) =>
 {
     var result = await handler.HandleAsync(new GetOrderByIdQuery(id), cancellationToken);
+    if (result is null) return (IResult)Results.NotFound();
 
-    if (result is null)
-    {
-        return (IResult)Results.NotFound();
-    }
-
+    var etag = string.Concat('"', Convert.ToBase64String(result.RowVersion ?? []), '"');
+    httpContext.Response.Headers["ETag"] = etag;
+    if (httpContext.Request.Headers["If-None-Match"].ToString()
+        .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .Any(value => value == "*" || value == etag))
+        return Results.StatusCode(StatusCodes.Status304NotModified);
     return Results.Ok(result);
 })
 .WithName("GetOrderById")

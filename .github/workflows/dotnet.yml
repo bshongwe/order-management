@@ -22,6 +22,65 @@ jobs:
           dotnet-version: 8.0.x
       - name: Restore
         run: dotnet restore OrderManagement.sln
+      - name: Restore EF tooling
+        run: dotnet tool restore
+      - name: Generate ephemeral SQL Server password
+        shell: bash
+        run: |
+          password="$(python -c 'import secrets,string; alphabet=string.ascii_letters+string.digits+"!@#$%^&*()-_=+"; required=[secrets.choice(string.ascii_uppercase),secrets.choice(string.ascii_lowercase),secrets.choice(string.digits),secrets.choice("!@#$%^&*()-_=+")]; chars=required+[secrets.choice(alphabet) for _ in range(28)]; secrets.SystemRandom().shuffle(chars); print("".join(chars))')"
+          echo "::add-mask::$password"
+          echo "MSSQL_SA_PASSWORD=$password" >> "$GITHUB_ENV"
+      - name: Generate idempotent migration script
+        run: |
+          export ConnectionStrings__Orders="Server=localhost;Database=OrderManagementDesignTime;User Id=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=True"
+          mkdir -p artifacts
+          dotnet ef migrations script --idempotent --project src/OrderManagement.Infrastructure --startup-project src/OrderManagement.Api --output artifacts/order-management-migrations.sql
+      - name: Start clean SQL Server
+        run: |
+          docker run --detach --name migration-sql \
+            --env ACCEPT_EULA=Y \
+            --env MSSQL_PID=Developer \
+            --env MSSQL_SA_PASSWORD \
+            --publish 1433:1433 \
+            mcr.microsoft.com/mssql/server:2022-latest
+      - name: Wait for SQL Server and create empty database
+        run: |
+          ready=false
+          for attempt in {1..60}; do
+            if docker exec migration-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -Q "SELECT 1" >/dev/null 2>&1; then
+              ready=true
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" = true
+          docker exec migration-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -Q "CREATE DATABASE OrderManagementMigrationCheck"
+      - name: Apply generated migration script to empty database
+        run: |
+          python -c "from pathlib import Path; p=Path('artifacts/order-management-migrations.sql'); p.write_text(p.read_text(encoding='utf-8-sig'), encoding='utf-8')"
+          {
+            echo "SET ANSI_NULLS ON;"
+            echo "SET QUOTED_IDENTIFIER ON;"
+            echo "SET ANSI_PADDING ON;"
+            echo "SET ANSI_WARNINGS ON;"
+            echo "SET ARITHABORT ON;"
+            echo "SET CONCAT_NULL_YIELDS_NULL ON;"
+            echo "SET NUMERIC_ROUNDABORT OFF;"
+            echo "GO"
+            cat artifacts/order-management-migrations.sql
+          } | docker exec -i migration-sql /opt/mssql-tools18/bin/sqlcmd -I -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d OrderManagementMigrationCheck
+      - name: Verify migration history
+        run: |
+          docker exec migration-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d OrderManagementMigrationCheck -Q "IF NOT EXISTS (SELECT 1 FROM dbo.__EFMigrationsHistory) THROW 51000, 'No EF migrations were applied.', 1; SELECT COUNT(*) AS AppliedMigrations FROM dbo.__EFMigrationsHistory"
+      - name: Stop clean SQL Server
+        if: always()
+        run: docker rm --force migration-sql || true
+      - name: Upload migration script
+        uses: actions/upload-artifact@v4
+        with:
+          name: order-management-migrations
+          path: artifacts/order-management-migrations.sql
+          if-no-files-found: error
       - name: Build
         run: dotnet build OrderManagement.sln --configuration Release --no-restore
       - name: Test
