@@ -66,6 +66,13 @@ public sealed class OrderRetrievalHandlerTests
         public Task AddAsync(Order order, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task<Order?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(orders.SingleOrDefault(candidate => candidate.Id == id));
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
         public Task<OrderDetails?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             var order = orders.SingleOrDefault(candidate => candidate.Id == id);
