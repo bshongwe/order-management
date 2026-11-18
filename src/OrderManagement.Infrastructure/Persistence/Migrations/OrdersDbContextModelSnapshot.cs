@@ -48,10 +48,41 @@ namespace OrderManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(32)");
 
                     b.HasKey("Id");
-
                     b.HasIndex("CustomerReference");
-
                     b.ToTable("Orders", (string)null);
+                });
+
+            modelBuilder.Entity("OrderManagement.Infrastructure.Persistence.IdempotencyRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ResponseJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResponseType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+                    b.HasIndex("Key").IsUnique();
+                    b.ToTable("IdempotencyRecords", (string)null);
                 });
 #pragma warning restore 612, 618
         }
