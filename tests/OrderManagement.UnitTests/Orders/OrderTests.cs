@@ -1,4 +1,5 @@
 using OrderManagement.Domain.Orders;
+using Xunit;
 
 namespace OrderManagement.UnitTests.Orders;
 
@@ -40,18 +41,22 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void Cancel_WhenFulfilled_Throws()
+    public void Cancel_WhenSubmitted_TransitionsToCancelled()
     {
         var order = Order.Create("CUSTOMER-123");
         order.Submit();
-        SetStatus(order, OrderStatus.Fulfilled);
 
-        Assert.Throws<InvalidOperationException>(order.Cancel);
+        order.Cancel();
+
+        Assert.Equal(OrderStatus.Cancelled, order.Status);
     }
 
-    private static void SetStatus(Order order, OrderStatus status)
+    [Fact]
+    public void Cancel_WhenAlreadyCancelled_Throws()
     {
-        var property = typeof(Order).GetProperty(nameof(Order.Status))!;
-        property.SetValue(order, status);
+        var order = Order.Create("CUSTOMER-123");
+        order.Cancel();
+
+        Assert.Throws<InvalidOperationException>(order.Cancel);
     }
 }
