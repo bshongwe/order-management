@@ -62,9 +62,16 @@ app.MapGet("/api/orders", async (
     }
     catch (ArgumentOutOfRangeException exception)
     {
+        var field = exception.ParamName switch
+        {
+            nameof(GetOrdersQuery.Page) => "page",
+            nameof(GetOrdersQuery.PageSize) => "pageSize",
+            _ => "query"
+        };
+
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
-            [exception.ParamName ?? "query"] = [exception.Message]
+            [field] = [exception.Message]
         });
     }
 })
@@ -81,7 +88,7 @@ app.MapGet("/api/orders/{id:guid}", async (
 
     if (result is null)
     {
-        return Results.NotFound();
+        return (IResult)Results.NotFound();
     }
 
     return Results.Ok(result);

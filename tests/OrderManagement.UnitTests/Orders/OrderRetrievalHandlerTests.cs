@@ -52,6 +52,7 @@ public sealed class OrderRetrievalHandlerTests
     [InlineData(0, 20)]
     [InlineData(1, 0)]
     [InlineData(1, 101)]
+    [InlineData(int.MaxValue, 100)]
     public async Task GetOrders_WithInvalidPagination_Throws(int page, int pageSize)
     {
         var handler = new GetOrdersHandler(new InMemoryOrderRepository([]));
