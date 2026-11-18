@@ -9,7 +9,7 @@ public sealed class EntraPermissionHandlerTests
 {
     [Theory]
     [InlineData("roles", "Orders.Read")]
-    [InlineData(ClaimTypes.Role, "Orders.Write")]
+    [InlineData(ClaimTypes.Role, "Orders.Read")]
     [InlineData("scp", "openid Orders.Read profile")]
     [InlineData("scope", "Orders.Admin Orders.Read")]
     public async Task AuthorizeAsync_GrantedRoleOrScope_Succeeds(string claimType, string value)
