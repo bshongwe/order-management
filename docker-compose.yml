@@ -33,6 +33,36 @@ services:
       retries: 10
       start_period: 20s
 
+  migrator:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      ConnectionStrings__Orders: "Server=sqlserver,1433;Database=OrderManagement;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+    command: ["/bin/bash", "-c", "dotnet tool restore && dotnet ef database update --project src/OrderManagement.Infrastructure --startup-project src/OrderManagement.Api"]
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: src/OrderManagement.Api/Dockerfile
+    container_name: order-management-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Orders: "Server=sqlserver,1433;Database=OrderManagement;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      Entra__Authority: ${ENTRA_AUTHORITY:?Set ENTRA_AUTHORITY in .env}
+      Entra__Audience: ${ENTRA_AUDIENCE:?Set ENTRA_AUDIENCE in .env}
+      Cors__AllowedOrigins__0: http://localhost:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   worker:
     build:
       context: .
@@ -45,10 +75,22 @@ services:
       RabbitMq__Username: ${RABBITMQ_DEFAULT_USER:-orderapp}
       RabbitMq__Password: ${RABBITMQ_DEFAULT_PASS}
     depends_on:
-      sqlserver:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
+    container_name: order-management-web
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
     restart: unless-stopped
 
 volumes:
