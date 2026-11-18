@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using OrderManagement.Application.Orders;
 using OrderManagement.Infrastructure.Persistence;
 using OrderManagement.IntegrationTests.Infrastructure;
@@ -70,6 +71,6 @@ public sealed class IdempotencyExecutorIntegrationTests(SqlServerFixture fixture
                 "submit:00000000-0000-0000-0000-000000000001",
                 _ => throw new InvalidOperationException("Simulated failure.")));
 
-        Assert.False(dbContext.IdempotencyRecords.Any(record => record.Key == "status-update-failure"));
+        Assert.False(await dbContext.IdempotencyRecords.AnyAsync(record => record.Key == "status-update-failure"));
     }
 }
