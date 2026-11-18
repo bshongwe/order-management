@@ -87,7 +87,7 @@ app.MapPost("/api/orders/{id:guid}/submit", async (
 {
     var result = await handler.HandleAsync(id, cancellationToken);
 
-    return result.Outcome switch
+    IResult response = result.Outcome switch
     {
         SubmitOrderOutcome.Submitted => Results.Ok(result.Order),
         SubmitOrderOutcome.NotFound => Results.NotFound(),
@@ -97,6 +97,8 @@ app.MapPost("/api/orders/{id:guid}/submit", async (
             detail: $"An order in status '{result.Order!.Status}' cannot be submitted."),
         _ => throw new InvalidOperationException("Unknown order submission outcome.")
     };
+
+    return response;
 })
 .WithName("SubmitOrder")
 .Produces<OrderDetails>()
