@@ -30,6 +30,50 @@ not started or migrated automatically by the API.
 The `ConnectionStrings__Orders` environment variable overrides configuration and should
 be used for local secrets and deployment configuration. Do not commit real credentials.
 
+## EF Core tooling and migrations
+
+The repository pins the EF Core CLI to the same 8.0.0 version as the EF Core packages.
+Restore the local tool manifest once after cloning or pulling:
+
+```bash
+dotnet tool restore
+```
+
+EF Core tooling uses `OrdersDbContextFactory` and reads the connection string from
+`ConnectionStrings__Orders`. Set that variable in the current shell before running commands.
+The factory validates configuration but does not connect to SQL Server when scaffolding a migration.
+
+Create a migration from the repository root:
+
+```bash
+dotnet ef migrations add InitialCreate \
+  --project src/OrderManagement.Infrastructure \
+  --startup-project src/OrderManagement.Api \
+  --output-dir Persistence/Migrations
+```
+
+Review and commit all generated migration and model snapshot files. Do not edit generated
+migration metadata by hand. To inspect the migrations known to the project:
+
+```bash
+dotnet ef migrations list \
+  --project src/OrderManagement.Infrastructure \
+  --startup-project src/OrderManagement.Api
+```
+
+Apply migrations explicitly to the configured database:
+
+```bash
+dotnet ef database update \
+  --project src/OrderManagement.Infrastructure \
+  --startup-project src/OrderManagement.Api
+```
+
+For production, run migrations as a controlled deployment step using the deployment
+environment's secret store and an appropriately scoped database identity. Do not run
+`Database.Migrate()` automatically from API startup: multiple API replicas can race,
+and application startup should not require schema-changing privileges.
+
 ## Stop the database
 
 ```bash
