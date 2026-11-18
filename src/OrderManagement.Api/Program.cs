@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<OrderConcurrencyExceptionHandler>();
+builder.Services.AddExceptionHandler<OrderCreationExceptionHandler>();
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<CreateCustomerHandler>();
 builder.Services.AddScoped<GetCustomerByIdHandler>();
@@ -113,16 +114,11 @@ app.MapPost("/api/orders", async (
     CreateOrderHandler handler,
     CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.CustomerReference))
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            [nameof(request.CustomerReference)] = ["Customer reference is required."]
-        });
-    }
+    var items = request.Items?.Select(item =>
+        new CreateOrderLineItemCommand(item.ProductSku, item.Quantity, item.UnitPrice)).ToArray();
 
     var result = await handler.HandleAsync(
-        new CreateOrderCommand(request.CustomerReference),
+        new CreateOrderCommand(request.CustomerId, request.CurrencyCode, items!),
         cancellationToken);
 
     return Results.Created($"/api/orders/{result.Id}", result);

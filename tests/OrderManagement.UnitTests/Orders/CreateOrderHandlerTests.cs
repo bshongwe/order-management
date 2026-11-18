@@ -1,82 +1,45 @@
+using OrderManagement.Application.Customers;
 using OrderManagement.Application.Orders;
+using OrderManagement.Domain.Customers;
 using OrderManagement.Domain.Orders;
 using Xunit;
-
 namespace OrderManagement.UnitTests.Orders;
-
 public sealed class CreateOrderHandlerTests
 {
-    [Fact]
-    public async Task HandleAsync_WithValidCommand_PersistsAndReturnsOrder()
-    {
-        var repository = new InMemoryOrderRepository();
-        var handler = new CreateOrderHandler(repository);
-
-        var result = await handler.HandleAsync(new CreateOrderCommand(" CUSTOMER-42 "));
-
-        var persistedOrder = Assert.Single(repository.Orders);
-        Assert.Equal(persistedOrder.Id, result.Id);
-        Assert.Equal("CUSTOMER-42", result.CustomerReference);
-        Assert.Equal(nameof(OrderStatus.Draft), result.Status);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WithInvalidCustomerReference_DoesNotPersist()
-    {
-        var repository = new InMemoryOrderRepository();
-        var handler = new CreateOrderHandler(repository);
-
-        await Assert.ThrowsAsync<ArgumentException>(
-            () => handler.HandleAsync(new CreateOrderCommand(" ")));
-
-        Assert.Empty(repository.Orders);
-    }
-
-    private sealed class InMemoryOrderRepository : IOrderRepository
-    {
-        public List<Order> Orders { get; } = [];
-
-        public Task AddAsync(Order order, CancellationToken cancellationToken)
-        {
-            Orders.Add(order);
-            return Task.CompletedTask;
-        }
-
-        public Task<Order?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(Orders.SingleOrDefault(candidate => candidate.Id == id));
-        }
-
-        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task<OrderDetails?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-        {
-            var order = Orders.SingleOrDefault(candidate => candidate.Id == id);
-            return Task.FromResult(order is null
-                ? null
-                : new OrderDetails(order.Id, order.CustomerReference, order.Status.ToString(), order.CreatedAtUtc));
-        }
-
-        public Task<OrderPage> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken)
-        {
-            var ordered = Orders
-                .OrderByDescending(order => order.CreatedAtUtc)
-                .ThenBy(order => order.Id)
-                .ToArray();
-            var items = ordered
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(order => new OrderSummary(
-                    order.Id,
-                    order.CustomerReference,
-                    order.Status.ToString(),
-                    order.CreatedAtUtc))
-                .ToArray();
-            var totalPages = ordered.Length == 0
-                ? 0
-                : (int)Math.Ceiling(ordered.Length / (double)pageSize);
-
-            return Task.FromResult(new OrderPage(items, page, pageSize, ordered.Length, totalPages));
-        }
-    }
+ [Fact] public async Task HandleAsync_WithValidCustomerAndItems_PersistsServerCalculatedTotal()
+ {
+  var customer=Customer.Create("Example","example@example.com","ZA"); var repository=new InMemoryOrderRepository();
+  var handler=new CreateOrderHandler(repository,new StubCustomerRepository(customer));
+  var result=await handler.HandleAsync(new CreateOrderCommand(customer.Id,"zar",[new CreateOrderLineItemCommand("SKU-1",2,12.50m)]));
+  var order=Assert.Single(repository.Orders); Assert.Equal(order.Id,result.Id); Assert.Equal(customer.Id,result.CustomerId);
+  Assert.Equal("ZAR",result.CurrencyCode); Assert.Equal(25m,result.TotalAmount); Assert.Equal(25m,order.TotalAmount);
+ }
+ [Fact] public async Task HandleAsync_WhenCustomerDoesNotExist_ThrowsAndDoesNotPersist()
+ {
+  var repository=new InMemoryOrderRepository(); var handler=new CreateOrderHandler(repository,new StubCustomerRepository(null));
+  await Assert.ThrowsAsync<CustomerNotFoundException>(()=>handler.HandleAsync(new CreateOrderCommand(Guid.NewGuid(),"ZAR",[new CreateOrderLineItemCommand("SKU",1,1m)])));
+  Assert.Empty(repository.Orders);
+ }
+ [Fact] public async Task HandleAsync_WhenCurrencyDoesNotMatchCountry_ThrowsAndDoesNotPersist()
+ {
+  var customer=Customer.Create("Example","example@example.com","ZA"); var repository=new InMemoryOrderRepository();
+  var handler=new CreateOrderHandler(repository,new StubCustomerRepository(customer));
+  await Assert.ThrowsAsync<UnsupportedOrderCurrencyException>(()=>handler.HandleAsync(new CreateOrderCommand(customer.Id,"USD",[new CreateOrderLineItemCommand("SKU",1,1m)])));
+  Assert.Empty(repository.Orders);
+ }
+ private sealed class StubCustomerRepository(Customer? customer):ICustomerRepository
+ {
+  public Task AddAsync(Customer value,CancellationToken token)=>throw new NotSupportedException();
+  public Task<CustomerDetails?> GetByIdAsync(Guid id,CancellationToken token)=>Task.FromResult(customer is not null&&customer.Id==id?new CustomerDetails(customer.Id,customer.Name,customer.Email,customer.CountryCode,customer.CreatedAtUtc):null);
+  public Task<CustomerPage> GetPageAsync(string? search,int page,int pageSize,CancellationToken token)=>throw new NotSupportedException();
+ }
+ private sealed class InMemoryOrderRepository:IOrderRepository
+ {
+  public List<Order> Orders {get;}=[];
+  public Task AddAsync(Order order,CancellationToken token){Orders.Add(order);return Task.CompletedTask;}
+  public Task<Order?> GetByIdForUpdateAsync(Guid id,CancellationToken token)=>Task.FromResult(Orders.SingleOrDefault(x=>x.Id==id));
+  public Task SaveChangesAsync(CancellationToken token)=>Task.CompletedTask;
+  public Task<OrderDetails?> GetByIdAsync(Guid id,CancellationToken token)=>Task.FromResult<OrderDetails?>(null);
+  public Task<OrderPage> GetPageAsync(int page,int pageSize,CancellationToken token)=>Task.FromResult(new OrderPage([],page,pageSize,0,0));
+ }
 }
