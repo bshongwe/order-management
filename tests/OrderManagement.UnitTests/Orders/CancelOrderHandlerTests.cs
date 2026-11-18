@@ -36,12 +36,11 @@ public sealed class CancelOrderHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenOrderIsFulfilled_ReturnsConflictWithoutSaving()
+    public async Task HandleAsync_WhenOrderIsAlreadyCancelled_ReturnsConflictWithoutSaving()
     {
         var order = Order.Create("CUSTOMER-100");
         order.Submit();
         order.Cancel();
-        // A cancelled order cannot be cancelled again; the domain rejects repeated cancellation.
         var repository = new InMemoryOrderRepository([order]);
         var handler = new CancelOrderHandler(repository);
 
