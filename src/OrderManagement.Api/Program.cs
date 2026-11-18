@@ -114,11 +114,15 @@ app.MapPost("/api/orders", async (
     CreateOrderHandler handler,
     CancellationToken cancellationToken) =>
 {
-    var items = request.Items?.Select(item =>
+    var validationErrors = CreateOrderRequestValidator.Validate(request);
+    if (validationErrors.Count > 0)
+        return Results.ValidationProblem(validationErrors);
+
+    var items = request.Items.Select(item =>
         new CreateOrderLineItemCommand(item.ProductSku, item.Quantity, item.UnitPrice)).ToArray();
 
     var result = await handler.HandleAsync(
-        new CreateOrderCommand(request.CustomerId, request.CurrencyCode, items!),
+        new CreateOrderCommand(request.CustomerId, request.CurrencyCode, items),
         cancellationToken);
 
     return Results.Created($"/api/orders/{result.Id}", result);
