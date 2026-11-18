@@ -4,7 +4,7 @@ public static class CreateOrderRequestValidator
 {
     private const decimal MaxMoney = 9_999_999_999_999_999.99m;
 
-    public static IReadOnlyDictionary<string, string[]> Validate(CreateOrderRequest? request)
+    public static Dictionary<string, string[]> Validate(CreateOrderRequest? request)
     {
         var errors = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 

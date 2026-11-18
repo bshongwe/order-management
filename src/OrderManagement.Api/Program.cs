@@ -116,7 +116,7 @@ app.MapPost("/api/orders", async (
 {
     var validationErrors = CreateOrderRequestValidator.Validate(request);
     if (validationErrors.Count > 0)
-        return Results.ValidationProblem(validationErrors);
+        return (IResult)Results.ValidationProblem(validationErrors);
 
     var items = request.Items.Select(item =>
         new CreateOrderLineItemCommand(item.ProductSku, item.Quantity, item.UnitPrice)).ToArray();
@@ -125,7 +125,7 @@ app.MapPost("/api/orders", async (
         new CreateOrderCommand(request.CustomerId, request.CurrencyCode, items),
         cancellationToken);
 
-    return Results.Created($"/api/orders/{result.Id}", result);
+    return (IResult)Results.Created($"/api/orders/{result.Id}", result);
 })
 .WithName("CreateOrder")
 .Produces<CreateOrderResult>(StatusCodes.Status201Created)
