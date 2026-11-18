@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using OrderManagement.Api.Authentication;
 using OrderManagement.Api.Contracts;
 using OrderManagement.Api.ExceptionHandling;
+using OrderManagement.Api.HealthChecks;
 using OrderManagement.Application.Customers;
 using OrderManagement.Application.Orders;
 using OrderManagement.Infrastructure;
@@ -37,7 +38,8 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddExceptionHandler<OrderConcurrencyExceptionHandler>();
 builder.Services.AddExceptionHandler<OrderCreationExceptionHandler>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<SqlServerReadinessHealthCheck>("sql-server", tags: ["ready"]);
 builder.Services.AddScoped<CreateCustomerHandler>();
 builder.Services.AddScoped<GetCustomerByIdHandler>();
 builder.Services.AddScoped<GetCustomersHandler>();
@@ -56,7 +58,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapOrderManagementHealthChecks();
 
 app.MapGet("/", () => Results.Ok(new
 {
