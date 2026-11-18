@@ -16,6 +16,7 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options) :
             entity.Property(order => order.CustomerReference).HasMaxLength(64).IsRequired();
             entity.Property(order => order.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
             entity.Property(order => order.CreatedAtUtc).IsRequired();
+            entity.Property<byte[]>("RowVersion").IsRowVersion();
             entity.HasIndex(order => order.CustomerReference);
         });
     }
