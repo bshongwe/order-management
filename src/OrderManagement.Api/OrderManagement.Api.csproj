@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../OrderManagement.Application/OrderManagement.Application.csproj" />
     <ProjectReference Include="../OrderManagement.Infrastructure/OrderManagement.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

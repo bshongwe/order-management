@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using OrderManagement.Api.Authentication;
 using OrderManagement.Api.Contracts;
 using OrderManagement.Api.ExceptionHandling;
 using OrderManagement.Application.Customers;
@@ -8,6 +11,30 @@ using OrderManagement.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Entra:Authority"];
+        options.Audience = builder.Configuration["Entra:Audience"];
+    });
+builder.Services.AddSingleton<IAuthorizationHandler, EntraPermissionHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+
+    options.AddPolicy("Orders.Read", policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new EntraPermissionRequirement("Orders.Read")));
+    options.AddPolicy("Orders.Write", policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new EntraPermissionRequirement("Orders.Write")));
+    options.AddPolicy("Orders.Admin", policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new EntraPermissionRequirement("Orders.Admin")));
+});
 builder.Services.AddExceptionHandler<OrderConcurrencyExceptionHandler>();
 builder.Services.AddExceptionHandler<OrderCreationExceptionHandler>();
 builder.Services.AddHealthChecks();
@@ -27,13 +54,15 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var app = builder.Build();
 
 app.UseExceptionHandler();
-app.MapHealthChecks("/health");
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.MapGet("/", () => Results.Ok(new
 {
     service = "SADC Order Management API",
     status = "Running"
-}));
+})).AllowAnonymous();
 
 app.MapPost("/api/customers", async (
     CreateCustomerRequest request,
@@ -58,7 +87,8 @@ app.MapPost("/api/customers", async (
 })
 .WithName("CreateCustomer")
 .Produces<CustomerDetails>(StatusCodes.Status201Created)
-.ProducesValidationProblem();
+.ProducesValidationProblem()
+.RequireAuthorization("Orders.Write");
 
 app.MapGet("/api/customers/{id:guid}", async (
     Guid id,
@@ -70,7 +100,8 @@ app.MapGet("/api/customers/{id:guid}", async (
 })
 .WithName("GetCustomerById")
 .Produces<CustomerDetails>()
-.Produces(StatusCodes.Status404NotFound);
+.Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization("Orders.Read");
 
 app.MapGet("/api/customers", async (
     string? search,
@@ -107,7 +138,8 @@ app.MapGet("/api/customers", async (
 })
 .WithName("GetCustomers")
 .Produces<CustomerPage>()
-.ProducesValidationProblem();
+.ProducesValidationProblem()
+.RequireAuthorization("Orders.Read");
 
 app.MapPost("/api/orders", async (
     CreateOrderRequest request,
@@ -129,7 +161,8 @@ app.MapPost("/api/orders", async (
 })
 .WithName("CreateOrder")
 .Produces<CreateOrderResult>(StatusCodes.Status201Created)
-.ProducesValidationProblem();
+.ProducesValidationProblem()
+.RequireAuthorization("Orders.Write");
 
 app.MapGet("/api/orders", async (
     int? page,
@@ -163,7 +196,8 @@ app.MapGet("/api/orders", async (
 })
 .WithName("GetOrders")
 .Produces<OrderPage>()
-.ProducesValidationProblem();
+.ProducesValidationProblem()
+.RequireAuthorization("Orders.Read");
 
 app.MapPost("/api/orders/{id:guid}/submit", async (
     Guid id,
@@ -194,7 +228,8 @@ app.MapPost("/api/orders/{id:guid}/submit", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/confirm", async (
     Guid id,
@@ -225,7 +260,8 @@ app.MapPost("/api/orders/{id:guid}/confirm", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/process", async (
     Guid id,
@@ -256,7 +292,8 @@ app.MapPost("/api/orders/{id:guid}/process", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/fulfill", async (
     Guid id,
@@ -287,7 +324,8 @@ app.MapPost("/api/orders/{id:guid}/fulfill", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapPost("/api/orders/{id:guid}/cancel", async (
     Guid id,
@@ -318,7 +356,8 @@ app.MapPost("/api/orders/{id:guid}/cancel", async (
 .Produces<OrderDetails>()
 .Produces(StatusCodes.Status404NotFound)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status409Conflict);
+.ProducesProblem(StatusCodes.Status409Conflict)
+.RequireAuthorization("Orders.Write");
 
 app.MapGet("/api/orders/{id:guid}", async (
     Guid id,
@@ -336,7 +375,8 @@ app.MapGet("/api/orders/{id:guid}", async (
 })
 .WithName("GetOrderById")
 .Produces<OrderDetails>()
-.Produces(StatusCodes.Status404NotFound);
+.Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization("Orders.Read");
 
 app.Run();
 
