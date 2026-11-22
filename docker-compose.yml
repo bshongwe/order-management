@@ -52,6 +52,7 @@ services:
     container_name: order-management-api
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      OpenApi__Enabled: "true"
       ConnectionStrings__Orders: "Server=sqlserver,1433;Database=OrderManagement;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
       # Entra__Authority: ${ENTRA_AUTHORITY:?Set ENTRA_AUTHORITY in .env}
       # Entra__Audience: ${ENTRA_AUDIENCE:?Set ENTRA_AUDIENCE in .env}
