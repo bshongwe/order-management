@@ -81,12 +81,12 @@ var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestMetricsMiddleware>();
 app.UseExceptionHandler();
+app.UseCors("Frontend");
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("OpenApi:Enabled"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapOrderManagementHealthChecks();

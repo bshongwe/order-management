@@ -26,12 +26,12 @@ docker compose up --build
 ```
 
 - Web UI: http://localhost:8082
-- API: http://localhost:8080
-- Swagger UI: http://localhost:8080/swagger/index.html
-- OpenAPI document: http://localhost:8080/swagger/v1/swagger.json
+- API: http://localhost:8090
+- Swagger UI: http://localhost:8090/swagger/index.html
+- OpenAPI document: http://localhost:8090/swagger/v1/swagger.json
 - RabbitMQ management: http://localhost:15672
 
-The Compose API runs in Production mode and explicitly sets `OpenApi__Enabled=true` to expose Swagger for the local assessment stack. When running the API directly in Development, Swagger is enabled automatically. For other Production deployments, set `OpenApi__Enabled=true` only when the documentation endpoint should be exposed; otherwise leave it unset or false. API operations remain protected by the configured Entra authorization policies.
+The Compose API runs in Production mode and explicitly sets `OpenApi__Enabled=true` to expose Swagger for the local assessment stack. Its published port is restricted to the host loopback address (`127.0.0.1`) in Docker Compose. When running the API directly in Development, Swagger is enabled automatically. For other Production deployments, set `OpenApi__Enabled=true` only when the documentation endpoint should be exposed; otherwise leave it unset or false. API operations remain protected by the configured Entra authorization policies.
 
 The Compose migrator waits for SQL Server health and applies EF migrations before API/worker startup. The API has no authentication bypass.
 
