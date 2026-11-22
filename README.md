@@ -25,7 +25,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Web UI: http://localhost:8081
+- Web UI: http://localhost:8082
 - API: http://localhost:8080
 - Swagger: http://localhost:8080/swagger (set OpenApi__Enabled=true)
 - RabbitMQ management: http://localhost:15672

@@ -53,9 +53,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Orders: "Server=sqlserver,1433;Database=OrderManagement;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
-      Entra__Authority: ${ENTRA_AUTHORITY:?Set ENTRA_AUTHORITY in .env}
-      Entra__Audience: ${ENTRA_AUDIENCE:?Set ENTRA_AUDIENCE in .env}
-      Cors__AllowedOrigins__0: http://localhost:8081
+      # Entra__Authority: ${ENTRA_AUTHORITY:?Set ENTRA_AUTHORITY in .env}
+      # Entra__Audience: ${ENTRA_AUDIENCE:?Set ENTRA_AUDIENCE in .env}
+      Cors__AllowedOrigins__0: http://localhost:8082
     ports:
       - "8080:8080"
     depends_on:
@@ -88,7 +88,7 @@ services:
         VITE_API_BASE_URL: http://localhost:8080
     container_name: order-management-web
     ports:
-      - "8081:80"
+      - "8082:80"
     depends_on:
       - api
     restart: unless-stopped
