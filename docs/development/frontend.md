@@ -19,4 +19,4 @@ Open `http://localhost:5173`. Obtain an API access token from your Microsoft Ent
 
 ## Docker Compose
 
-The root Compose stack serves the web app at `http://localhost:8081` and the API at `http://localhost:8080`. Configure the Entra settings in `.env` before starting the stack. The web container is a static Nginx deployment; API requests are sent to the host-mapped API URL configured at build time.
+The root Compose stack serves the web app at `http://localhost:8082` and the API at `http://localhost:8080`. Configure the Entra settings in `.env` before starting the stack. The web container is a static Nginx deployment; API requests are sent to the host-mapped API URL configured at build time.
